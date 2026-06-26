@@ -1,5 +1,6 @@
 import TerminalFrame from "./components/TerminalFrame";
 import ProductCard from "./components/ProductCard";
+import AnimatedBanner from "./components/AnimatedBanner";
 
 const categories = [
   {
@@ -68,6 +69,11 @@ export default function Home() {
       </header>
 
       <main className="flex-1">
+        {/* Logo Banner */}
+        <section className="max-w-5xl mx-auto px-5 sm:px-8 pt-6">
+          <AnimatedBanner />
+        </section>
+
         {/* Hero */}
         <section className="max-w-5xl mx-auto px-5 sm:px-8 pt-16 pb-12">
           <TerminalFrame path="~/damkerng/intro.sh" className="scanlines">
