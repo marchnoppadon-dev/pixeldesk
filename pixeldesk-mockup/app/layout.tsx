@@ -2,30 +2,36 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://pixeldesk.example.com"),
+  metadataBase: new URL("https://pixeldeskth.com"),
   title: {
-    default: "PixelDesk — ของแต่งโต๊ะเกมมิ่ง/สตรีมมิ่ง โดยดำเกิง",
-    template: "%s | PixelDesk",
+    default: "pixeldeskth — รีวิวหนัง ดูได้ที่ไหนบ้าง Netflix, Viu, HBO Max, Apple TV",
+    template: "%s | pixeldeskth",
   },
-  description: "ดำเกิงเลือกของแต่งโต๊ะเกมมิ่งและสตรีมมิ่งงบจำกัดมาให้แล้ว รีวิวจริง ราคาจริง อัปเดตทุกเดือน",
+  description:
+    "รีวิวหนังภาษาไทยตรงประเด็น พร้อมเช็คว่าดูได้ที่ไหนบ้าง Netflix, Viu, HBO Max, Apple TV และแพลตฟอร์มอื่น อัปเดตทุกวัน",
   keywords: [
-    "ของแต่งโต๊ะคอม",
-    "ของแต่งโต๊ะเกมมิ่ง",
-    "ไฟแต่งห้อง",
-    "gadget แต่งโต๊ะ",
-    "จัดโต๊ะคอม งบน้อย",
+    "รีวิวหนัง",
+    "หนังออนไลน์",
+    "ดูหนังที่ไหน",
+    "Netflix หนังน่าดู",
+    "Viu หนัง",
+    "HBO Max หนัง",
+    "Apple TV หนัง",
   ],
   openGraph: {
     type: "website",
     locale: "th_TH",
-    siteName: "PixelDesk",
-    title: "PixelDesk — ของแต่งโต๊ะเกมมิ่ง/สตรีมมิ่ง โดยดำเกิง",
-    description: "ดำเกิงเลือกของแต่งโต๊ะเกมมิ่งและสตรีมมิ่งงบจำกัดมาให้แล้ว",
+    siteName: "pixeldeskth",
+    title: "pixeldeskth — รีวิวหนัง ดูได้ที่ไหนบ้าง Netflix, Viu, HBO Max, Apple TV",
+    description:
+      "รีวิวหนังภาษาไทยตรงประเด็น พร้อมเช็คว่าดูได้ที่ไหนบ้าง Netflix, Viu, HBO Max, Apple TV และแพลตฟอร์มอื่น",
+    // TODO: เพิ่ม images: ["/og-default.png"] ตอนมีไฟล์ banner/โลโก้จริงแล้ว
   },
   twitter: {
     card: "summary_large_image",
-    title: "PixelDesk — ของแต่งโต๊ะเกมมิ่ง/สตรีมมิ่ง โดยดำเกิง",
-    description: "ดำเกิงเลือกของแต่งโต๊ะเกมมิ่งและสตรีมมิ่งงบจำกัดมาให้แล้ว",
+    title: "pixeldeskth — รีวิวหนัง ดูได้ที่ไหนบ้าง Netflix, Viu, HBO Max, Apple TV",
+    description:
+      "รีวิวหนังภาษาไทยตรงประเด็น พร้อมเช็คว่าดูได้ที่ไหนบ้าง Netflix, Viu, HBO Max, Apple TV และแพลตฟอร์มอื่น",
   },
 };
 
