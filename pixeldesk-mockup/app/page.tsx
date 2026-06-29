@@ -148,9 +148,9 @@ export default async function HomePage() {
         <Image src="/logo.png" alt="PIXELDESK" width={160} height={40} priority style={{ height: 36, width: "auto" }} />
         <nav style={{ display: "flex", gap: 18, fontSize: 13, alignItems: "center", flexWrap: "wrap" }}>
           <Link href="/" style={{ color: COLORS.text, textDecoration: "none" }}>หน้าแรก</Link>
-          <span style={{ color: COLORS.muted }}>แพลตฟอร์ม</span>
-          <span style={{ color: COLORS.muted }}>รีวิวหนัง</span>
-          <span style={{ color: COLORS.muted }}>จัดอันดับ</span>
+          <Link href="/platforms" style={{ color: COLORS.text, textDecoration: "none" }}>แพลตฟอร์ม</Link>
+          <Link href="/movies" style={{ color: COLORS.text, textDecoration: "none" }}>รีวิวหนัง</Link>
+          <Link href="/ranking" style={{ color: COLORS.text, textDecoration: "none" }}>จัดอันดับ</Link>
         </nav>
       </div>
 
@@ -209,6 +209,16 @@ export default async function HomePage() {
       )}
 
       <div style={{ padding: "2rem 1.5rem" }}>
+        <div style={{ marginBottom: "2rem", maxWidth: 720 }}>
+          <h1 className={pixelFont.className} style={{ fontSize: 16, color: "#fff", margin: "0 0 12px", lineHeight: 1.6 }}>
+            แนะนำหนังน่าดูบน Netflix, HBO Max, Apple TV และ Viu
+          </h1>
+          <p style={{ fontSize: 14, color: COLORS.muted, lineHeight: 1.7 }}>
+            pixeldeskth รวมรีวิวหนังภาษาไทยต้นฉบับ พร้อมเช็คว่าหนังเรื่องที่อยากดู
+            มีอยู่บนแพลตฟอร์มไหนบ้าง ไม่ต้องเสียเวลาเปิดหลายแอปหาเอง
+            อัปเดตหนังใหม่ทุกวันจากทุกแพลตฟอร์มสตรีมมิ่งหลักในไทย
+          </p>
+        </div>
         <MovieRow title="รีวิวล่าสุด" movies={latest} />
         {providers.map((p, i) => (
           <MovieRow key={p.slug} title={"หนัง " + p.name.toUpperCase()} movies={providerMovies[i]} />

@@ -26,6 +26,7 @@ interface Provider {
   id: number;
   name: string;
   slug: string;
+  description_th: string | null;
 }
 
 interface ProviderMovie {
@@ -38,7 +39,7 @@ interface ProviderMovie {
 async function getProvider(slug: string): Promise<Provider | null> {
   const { data } = await supabase
     .from("providers")
-    .select("id, name, slug")
+    .select("id, name, slug, description_th")
     .eq("slug", slug)
     .maybeSingle();
   return data ?? null;
@@ -115,11 +116,16 @@ export default async function PlatformPage({
         <p className={pixelFont.className} style={{ fontSize: 24, color: heroText, margin: "0 0 8px", lineHeight: 1.5 }}>
           {provider.name.toUpperCase()}
         </p>
-        <p style={{ fontSize: 14, color: heroText, margin: 0, opacity: 0.85 }}>
+        <p style={{ fontSize: 14, color: heroText, margin: "0 0 6px", opacity: 0.85 }}>
           {movies.length > 0
             ? "รวมหนัง " + movies.length + " เรื่องที่ดูได้บน " + provider.name.toUpperCase()
             : "เร็วๆนี้ — กำลังรวบรวมหนังบนแพลตฟอร์มนี้"}
         </p>
+        {provider.description_th && (
+          <p style={{ fontSize: 14, color: heroText, margin: 0, opacity: 0.9, lineHeight: 1.7, maxWidth: 640 }}>
+            {provider.description_th}
+          </p>
+        )}
       </div>
 
       <div style={{ padding: "0 1.5rem 3rem" }}>

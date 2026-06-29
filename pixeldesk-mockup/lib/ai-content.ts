@@ -93,7 +93,7 @@ export async function generateMovieContent(
   if (!textBlock) throw new Error("ไม่มี text block ในผลลัพธ์จาก Claude API");
 
   const fullText = textBlock.text;
-  console.log("=== RAW CLAUDE RESPONSE ===\n", fullText, "\n=== END LOG ===");
+  
 
   const metaMatch = fullText.match(/===META===([\s\S]*?)===REVIEW===/);
   const reviewMatch = fullText.match(/===REVIEW===([\s\S]*?)===END===/);
@@ -117,4 +117,60 @@ export async function generateMovieContent(
     cons: metaParsed.cons,
     faq: metaParsed.faq,
   };
+}
+export interface ProviderContext {
+  name: string;
+  movieTitles: string[];
+}
+
+const PROVIDER_SYSTEM_PROMPT = `คุณเป็นนักเขียนคอนเทนต์ให้เว็บไซต์ pixeldeskth
+หน้าที่คือเขียนคำโปรยสั้นๆ แนะนำแพลตฟอร์มสตรีมมิ่ง โดยอ้างอิงจากรายชื่อหนังตัวอย่าง
+ที่มีอยู่บนแพลตฟอร์มนั้นตอนนี้
+กฎที่ต้องทำตามเคร่งครัด:
+1. เขียนเป็นภาษาไทยธรรมชาติ 3-5 ประโยค ไม่ต้องมีหัวข้อย่อย เขียนต่อกันเป็นพารากราฟเดียว
+2. กล่าวถึงชื่อแพลตฟอร์ม จุดเด่นของแพลตฟอร์มในเชิงตัวอย่างแนวหนังที่มี (อิงจากรายชื่อ
+   หนังที่ได้รับ) และปิดท้ายด้วยการชวนให้ดูรีวิวหนังในหน้านี้
+3. ห้ามแต่งข้อมูลที่ไม่มีอยู่ในรายชื่อหนังที่ได้รับ เช่น ห้ามเอ่ยชื่อหนังที่ไม่ได้อยู่
+   ในรายชื่อ ห้ามอ้างจำนวนหนังหรือราคาสมาชิกที่ไม่ได้รับมา
+4. ห้ามใส่เครื่องหมายคำพูดคู่ในคำตอบเด็ดขาด
+5. ตอบเป็นข้อความธรรมดาเท่านั้น ห้ามมีคำนำ ห้ามมี markdown ห้ามมีข้อความอื่นนอกเหนือ
+   จากคำโปรยที่ขอ`;
+
+function buildProviderPrompt(ctx: ProviderContext): string {
+  const titleList = ctx.movieTitles.length > 0
+    ? ctx.movieTitles.slice(0, 10).join(", ")
+    : "ยังไม่มีข้อมูลหนังตัวอย่าง";
+  return "แพลตฟอร์ม: " + ctx.name + "\n" +
+    "ตัวอย่างหนังที่มีอยู่ตอนนี้: " + titleList + "\n\n" +
+    "เขียนคำโปรยสั้นๆ 3-5 ประโยคตามกฎที่กำหนดไว้ในระบบ";
+}
+
+export async function generateProviderDescription(
+  ctx: ProviderContext
+): Promise<string> {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 1000,
+      system: PROVIDER_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: buildProviderPrompt(ctx) }],
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error("Claude API error: " + res.status + " " + errText);
+  }
+
+  const data = await res.json();
+  const textBlock = data.content.find((b: any) => b.type === "text");
+  if (!textBlock) throw new Error("ไม่มี text block ในผลลัพธ์จาก Claude API");
+
+  return textBlock.text.trim();
 }

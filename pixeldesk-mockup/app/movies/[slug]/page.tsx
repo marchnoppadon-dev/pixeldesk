@@ -188,9 +188,9 @@ export default async function MovieDetailPage({
           )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p className={pixelFont.className} style={{ fontSize: 15, color: "#06251c", margin: "0 0 8px", lineHeight: 1.5 }}>
+          <h1 className={pixelFont.className} style={{ fontSize: 15, color: "#06251c", margin: "0 0 8px", lineHeight: 1.5 }}>
             {movie.title_th}
-          </p>
+          </h1>
           <p style={{ fontSize: 12, color: "#0a3b30", margin: "0 0 10px" }}>
             {releaseYear ?? "-"} · {movie.runtime ? `${movie.runtime} นาที` : "-"} ·{" "}
             {movie.certification_th ?? "ไม่ระบุเรต"}

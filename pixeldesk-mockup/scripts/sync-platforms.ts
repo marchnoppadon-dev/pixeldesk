@@ -4,6 +4,7 @@ config({ path: ".env.local" });
 import { supabase } from "../lib/supabase";
 import { fetchMoviesByProvider } from "../lib/tmdb";
 import { ensureMovieExists } from "../lib/movie-pipeline";
+import { generateProviderDescription } from "../lib/ai-content";
 
 async function syncProvider(providerId: number, confidence: "high" | "low") {
   const { results } = await fetchMoviesByProvider(providerId, 1);
@@ -23,6 +24,29 @@ async function syncProvider(providerId: number, confidence: "high" | "low") {
   }
 
   console.log("sync provider_id=" + providerId + " แล้ว (" + results.length + " เรื่องจาก TMDB)");
+
+  try {
+    const { data: providerRow } = await supabase
+      .from("providers")
+      .select("name")
+      .eq("id", providerId)
+      .maybeSingle();
+
+    if (providerRow) {
+      const movieTitles = results.slice(0, 10).map((m: any) => m.title).filter(Boolean);
+      const description = await generateProviderDescription({
+        name: providerRow.name,
+        movieTitles,
+      });
+      await supabase
+        .from("providers")
+        .update({ description_th: description })
+        .eq("id", providerId);
+      console.log("เขียนคำโปรย provider_id=" + providerId + " แล้ว");
+    }
+  } catch (err) {
+    console.error("เขียนคำโปรย provider_id=" + providerId + " ไม่สำเร็จ:", err);
+  }
 }
 
 async function main() {
