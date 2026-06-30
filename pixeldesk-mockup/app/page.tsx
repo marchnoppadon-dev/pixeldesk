@@ -5,6 +5,8 @@ import Image from "next/image";
 import HeroBanner from "./components/HeroBanner";
 import TrailerSection from "./components/TrailerSection";
 
+export const revalidate = 0;
+
 const pixelFont = Press_Start_2P({ subsets: ["latin"], weight: "400" });
 
 const COLORS = {
