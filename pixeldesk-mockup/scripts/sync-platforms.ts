@@ -4,7 +4,7 @@ config({ path: ".env.local" });
 import { supabase } from "../lib/supabase";
 import { fetchMoviesByProvider } from "../lib/tmdb";
 import { ensureMovieExists } from "../lib/movie-pipeline";
-import { generateProviderDescription } from "../lib/ai-content";
+import { generateProviderDescription, generateProviderLongContent } from "../lib/ai-content";
 
 async function syncProvider(providerId: number, confidence: "high" | "low") {
   const { results } = await fetchMoviesByProvider(providerId, 1);
@@ -43,9 +43,28 @@ async function syncProvider(providerId: number, confidence: "high" | "low") {
         .update({ description_th: description })
         .eq("id", providerId);
       console.log("เขียนคำโปรย provider_id=" + providerId + " แล้ว");
+
+      const { data: existingRow } = await supabase
+        .from("providers")
+        .select("long_content_th")
+        .eq("id", providerId)
+        .maybeSingle();
+      if (!existingRow?.long_content_th) {
+        const longContent = await generateProviderLongContent({
+          name: providerRow.name,
+          movieTitles,
+        });
+        await supabase
+          .from("providers")
+          .update({ long_content_th: longContent })
+          .eq("id", providerId);
+        console.log("เขียนบทความยาว provider_id=" + providerId + " แล้ว (ครั้งแรก)");
+      } else {
+        console.log("มีบทความยาว provider_id=" + providerId + " อยู่แล้ว ข้าม");
+      }
     }
   } catch (err) {
-    console.error("เขียนคำโปรย provider_id=" + providerId + " ไม่สำเร็จ:", err);
+    console.error("เขียนคำโปรย/บทความ provider_id=" + providerId + " ไม่สำเร็จ:", err);
   }
 }
 

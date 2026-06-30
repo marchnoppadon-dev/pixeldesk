@@ -21,6 +21,7 @@ interface Provider {
   name: string;
   slug: string;
   description_th: string | null;
+  long_content_th: string | null;
 }
 
 interface ProviderMovie {
@@ -33,7 +34,7 @@ interface ProviderMovie {
 async function getProvider(slug: string): Promise<Provider | null> {
   const { data } = await supabase
     .from("providers")
-    .select("id, name, slug, description_th")
+    .select("id, name, slug, description_th, long_content_th")
     .eq("slug", slug)
     .maybeSingle();
   return data ?? null;
@@ -226,6 +227,19 @@ export default async function PlatformPage({
                 </Link>
               ))}
             </div>
+          </div>
+        )}
+
+        {provider.long_content_th && (
+          <div style={{ marginTop: "3rem", maxWidth: 760 }}>
+            <p className={pixelFont.className} style={{ fontSize: 14, color: "#fff", margin: "0 0 14px", lineHeight: 1.6 }}>
+              แนะนำหนัง {provider.name.toUpperCase()} ดูอะไรดี
+            </p>
+            {provider.long_content_th.split("\n\n").map((para, i) => (
+              <p key={i} style={{ fontSize: 14, color: COLORS.muted, lineHeight: 1.8, margin: "0 0 14px" }}>
+                {para}
+              </p>
+            ))}
           </div>
         )}
       </div>

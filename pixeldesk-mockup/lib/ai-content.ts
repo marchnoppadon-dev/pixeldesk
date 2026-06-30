@@ -174,3 +174,58 @@ export async function generateProviderDescription(
 
   return textBlock.text.trim();
 }
+
+const PROVIDER_LONG_SYSTEM_PROMPT = `คุณเป็นนักเขียนคอนเทนต์ SEO ให้เว็บไซต์ pixeldeskth
+หน้าที่คือเขียนบทความยาวสำหรับหน้ารวมหนังของแพลตฟอร์มสตรีมมิ่งหนึ่งๆ เพื่อให้ติดอันดับ
+การค้นหาคำว่า "แนะนำหนัง [ชื่อแพลตฟอร์ม] ดูอะไรดี" บน Google
+กฎที่ต้องทำตามเคร่งครัด:
+1. เขียนเป็นภาษาไทยธรรมชาติ แบ่งเป็น 3-4 ย่อหน้า แยกด้วยการขึ้นบรรทัดใหม่สองครั้ง
+   ไม่ต้องมีหัวข้อย่อยหรือ markdown ใดๆ
+2. ย่อหน้าที่ 1: พูดถึงปัญหาที่คนเจอตอนเปิดแพลตฟอร์มนี้ (เลือกหนังไม่ถูก หนังเยอะ)
+   แล้วบอกว่าเว็บนี้ช่วยอะไรได้
+3. ย่อหน้าที่ 2-3: พูดถึงจุดเด่นของแพลตฟอร์มนี้ในเชิงแนวหนังที่มี โดยอ้างอิงจากรายชื่อ
+   หนังตัวอย่างที่ได้รับเท่านั้น ห้ามแต่งชื่อหนังที่ไม่ได้อยู่ในรายการ
+4. ย่อหน้าสุดท้าย: ชวนให้เลื่อนดูรายการหนังด้านล่าง และแนะนำว่าสามารถดูรีวิวแต่ละเรื่อง
+   ได้จากเว็บนี้
+5. ความยาวรวม 350-500 คำ ห้ามยืดประโยคซ้ำความหมายเดิมเพื่อให้ยาว
+6. ห้ามใส่เครื่องหมายคำพูดคู่ในคำตอบเด็ดขาด
+7. ตอบเป็นข้อความธรรมดาเท่านั้น ห้ามมีคำนำ ห้ามมีข้อความอื่นนอกเหนือจากบทความที่ขอ`;
+
+function buildProviderLongPrompt(ctx: ProviderContext): string {
+  const titleList = ctx.movieTitles.length > 0
+    ? ctx.movieTitles.slice(0, 15).join(", ")
+    : "ยังไม่มีข้อมูลหนังตัวอย่าง";
+  return "แพลตฟอร์ม: " + ctx.name + "\n" +
+    "ตัวอย่างหนังที่มีอยู่ตอนนี้: " + titleList + "\n\n" +
+    "เขียนบทความ SEO ยาวตามกฎที่กำหนดไว้ในระบบ";
+}
+
+export async function generateProviderLongContent(
+  ctx: ProviderContext
+): Promise<string> {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 2000,
+      system: PROVIDER_LONG_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: buildProviderLongPrompt(ctx) }],
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error("Claude API error: " + res.status + " " + errText);
+  }
+
+  const data = await res.json();
+  const textBlock = data.content.find((b: any) => b.type === "text");
+  if (!textBlock) throw new Error("ไม่มี text block ในผลลัพธ์จาก Claude API");
+
+  return textBlock.text.trim();
+}
