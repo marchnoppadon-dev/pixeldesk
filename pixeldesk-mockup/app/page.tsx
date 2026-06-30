@@ -2,6 +2,7 @@ import { Press_Start_2P } from "next/font/google";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 import Image from "next/image";
+import HeroBanner from "./components/HeroBanner";
 
 const pixelFont = Press_Start_2P({ subsets: ["latin"], weight: "400" });
 
@@ -24,6 +25,34 @@ async function getFeaturedMovie() {
     )
     .eq("status", "published")
     .order("popularity", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data as any;
+}
+
+async function getPopularMovie() {
+  const { data } = await supabase
+    .from("movies")
+    .select(
+      "slug, title_th, backdrop_path, vote_average, trailer_youtube_key, " +
+        "ai_content(meta_description), movie_genres(genres(name_th))"
+    )
+    .eq("status", "published")
+    .order("vote_average", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data as any;
+}
+
+async function getLatestMovie() {
+  const { data } = await supabase
+    .from("movies")
+    .select(
+      "slug, title_th, backdrop_path, vote_average, trailer_youtube_key, " +
+        "ai_content(meta_description), movie_genres(genres(name_th))"
+    )
+    .eq("status", "published")
+    .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   return data as any;
@@ -135,8 +164,10 @@ function MovieRow({ title, movies }: { title: string; movies: any[] }) {
 }
 
 export default async function HomePage() {
-  const [featured, providers, latest, heroTrailerOverride] = await Promise.all([
+  const [featured, popular, latestMovie, providers, latest, heroTrailerOverride] = await Promise.all([
     getFeaturedMovie(),
+    getPopularMovie(),
+    getLatestMovie(),
     getProviders(),
     getLatestReviews(),
     getHeroTrailerOverride(),
@@ -146,10 +177,6 @@ export default async function HomePage() {
     providers.map((p) => getMoviesForProvider(p.id))
   );
 
-  const genreNames = featured?.movie_genres
-    ?.map((g: any) => g.genres?.name_th)
-    .filter(Boolean)
-    .join(" · ");
 
   return (
     <div style={{ background: COLORS.bg, color: COLORS.text }}>
@@ -163,58 +190,14 @@ export default async function HomePage() {
         </nav>
       </div>
 
-      {featured && (
-        <div
-          style={{
-            position: "relative",
-            minHeight: 380,
-            backgroundImage: featured.backdrop_path
-              ? "linear-gradient(to top, rgba(28,19,32,1) 0%, rgba(28,19,32,0.3) 50%, rgba(28,19,32,0.1) 100%), url(https://image.tmdb.org/t/p/w1280" + featured.backdrop_path + ")"
-              : undefined,
-          backgroundColor: COLORS.surf,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            display: "flex",
-            alignItems: "flex-end",
-            padding: "2rem 1.5rem",
-          }}
-        >
-          <div style={{ maxWidth: 560 }}>
-            <p className={pixelFont.className} style={{ fontSize: 9, color: COLORS.accent, margin: "0 0 10px" }}>
-              กำลังมาแรง
-            </p>
-            <p className={pixelFont.className} style={{ fontSize: 22, color: "#fff", margin: "0 0 12px", lineHeight: 1.5 }}>
-              {featured.title_th}
-            </p>
-            <p style={{ fontSize: 13, color: COLORS.muted, margin: "0 0 10px" }}>
-              {genreNames || "ภาพยนตร์"}
-              {featured.vote_average !== null ? "  ★ " + Number(featured.vote_average).toFixed(1) : ""}
-            </p>
-            {featured.ai_content?.meta_description && (
-              <p style={{ fontSize: 14, color: COLORS.text, margin: "0 0 18px", lineHeight: 1.6, maxWidth: 480 }}>
-                {featured.ai_content.meta_description}
-              </p>
-            )}
-            <div style={{ display: "flex", gap: 10 }}>
-              {(heroTrailerOverride || featured.trailer_youtube_key) && (
-                  <a href={"https://www.youtube.com/watch?v=" + (heroTrailerOverride || featured.trailer_youtube_key)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ background: COLORS.accent, color: "#3d2b04", fontSize: 13, fontWeight: 600, padding: "10px 20px", borderRadius: 6, textDecoration: "none" }}
-                >
-                  ▶ ดูเทรลเลอร์
-                </a>
-              )}
-              <Link
-                href={"/movies/" + featured.slug}
-                style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 13, fontWeight: 600, padding: "10px 20px", borderRadius: 6, textDecoration: "none" }}
-              >
-                + ดูรายละเอียด
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
+      <HeroBanner
+        trending={featured}
+        popular={popular}
+        latest={latestMovie}
+        heroTrailerOverride={heroTrailerOverride}
+        colors={COLORS}
+        pixelFontClassName={pixelFont.className}
+      />
 
       <div style={{ padding: "2rem 1.5rem" }}>
         <div style={{ marginBottom: "2rem", maxWidth: 720 }}>
