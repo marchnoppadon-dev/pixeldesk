@@ -25,6 +25,7 @@ interface MovieDetail {
   release_date: string | null;
   runtime: number | null;
   vote_average: number | null;
+  vote_count: number | null;
   certification_th: string | null;
   trailer_youtube_key: string | null;
   ai_content: {
@@ -45,7 +46,7 @@ async function getMovie(slug: string): Promise<MovieDetail | null> {
     .from("movies")
     .select(
       `id, slug, title_th, title_original, poster_path, release_date, runtime,
-       vote_average, certification_th, trailer_youtube_key,
+       vote_average, vote_count, certification_th, trailer_youtube_key,
        ai_content(meta_title, meta_description, review_body, pros_cons, faq),
        movie_cast(name, character, billing_order),
        movie_providers(providers(name, slug))`
@@ -128,10 +129,11 @@ export default async function MovieDetailPage({
     dateCreated: movie.release_date ?? undefined,
     duration: movie.runtime ? `PT${movie.runtime}M` : undefined,
     contentRating: movie.certification_th ?? undefined,
-    aggregateRating: movie.vote_average
+    aggregateRating: movie.vote_average && movie.vote_count
       ? {
           "@type": "AggregateRating",
           ratingValue: movie.vote_average,
+          ratingCount: movie.vote_count,
           bestRating: 10,
         }
       : undefined,
