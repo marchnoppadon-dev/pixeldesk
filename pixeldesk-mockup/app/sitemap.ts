@@ -3,6 +3,9 @@ import { supabase } from "../lib/supabase";
 
 const BASE_URL = "https://pixeldeskth.com";
 
+// Regenerate hourly so new/renamed movie slugs show up without a redeploy.
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { data: movies } = await supabase
     .from("movies")

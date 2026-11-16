@@ -7,12 +7,10 @@ import {
   extractThaiCertification,
   extractTrailerKey,
   extractThaiProviders,
+  fetchEnglishTitle,
 } from "./tmdb";
 import { generateMovieContent, type MovieContext } from "./ai-content";
-
-function slugify(tmdbId: number) {
-  return "movie-" + tmdbId;
-}
+import { makeMovieSlug } from "./slug";
 
 /**
  * ตรวจสอบว่าหนังเรื่องนี้มีอยู่ในระบบแล้วหรือยัง ถ้ายังไม่มี จะสร้างขึ้นใหม่ครบ
@@ -58,7 +56,7 @@ export async function ensureMovieExists(tmdbId: number): Promise<string | null> 
     .from("movies")
     .insert({
       tmdb_id: tmdbId,
-      slug: slugify(tmdbId),
+      slug: makeMovieSlug(tmdbId, await fetchEnglishTitle(tmdbId), detail.original_title),
       title_th: ctx.titleTh,
       title_original: ctx.titleOriginal,
       release_date: ctx.releaseDate,

@@ -42,6 +42,16 @@ export async function fetchMovieBundle(tmdbId: number): Promise<TmdbMovieBundle>
   };
 }
 
+/** English title from TMDB, used for Latin URL slugs when the original title isn't Latin. */
+export async function fetchEnglishTitle(tmdbId: number): Promise<string | null> {
+  try {
+    const detail = await tmdbFetch(`/movie/${tmdbId}`, { language: "en-US" });
+    return detail.title ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function extractThaiCertification(releaseDates: any): string | null {
   const thEntry = releaseDates?.results?.find((r: any) => r.iso_3166_1 === "TH");
   const cert = thEntry?.release_dates?.find((d: any) => d.certification)?.certification;

@@ -1,9 +1,10 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { Press_Start_2P } from "next/font/google";
 import Link from "next/link";
 import { cache } from "react";
 import { supabase } from "../../../lib/supabase";
+import { tmdbIdFromSlug } from "../../../lib/slug";
 
 // ISR: render each review on first visit, then serve it from cache and refresh hourly.
 export const revalidate = 3600;
@@ -76,6 +77,19 @@ const getMovie = cache(async function getMovie(slug: string): Promise<MovieDetai
   } as unknown as MovieDetail;
 });
 
+// Old URLs (e.g. /movies/movie-766319) resolve by their TMDB id to the current slug.
+const getCurrentSlug = cache(async function getCurrentSlug(slug: string): Promise<string | null> {
+  const tmdbId = tmdbIdFromSlug(slug);
+  if (tmdbId === null) return null;
+  const { data } = await supabase
+    .from("movies")
+    .select("slug")
+    .eq("tmdb_id", tmdbId)
+    .eq("status", "published")
+    .maybeSingle();
+  return data && data.slug !== slug ? data.slug : null;
+});
+
 async function getSimilarMovies(movieId: string) {
   const { data: genreRows } = await supabase
     .from("movie_genres")
@@ -137,7 +151,11 @@ export default async function MovieDetailPage({
 }) {
   const { slug } = await params;
   const movie = await getMovie(slug);
-  if (!movie) notFound();
+  if (!movie) {
+    const current = await getCurrentSlug(slug);
+    if (current) permanentRedirect(`/movies/${current}`);
+    notFound();
+  }
 
   const similar = await getSimilarMovies(movie.id);
   const primaryProvider = movie.movie_providers[0]?.providers;
