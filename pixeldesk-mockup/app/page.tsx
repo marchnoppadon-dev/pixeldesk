@@ -4,8 +4,13 @@ import { supabase } from "../lib/supabase";
 import Image from "next/image";
 import HeroBanner from "./components/HeroBanner";
 import TrailerSection from "./components/TrailerSection";
+import type { Metadata } from "next";
 
 export const revalidate = 0;
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 const pixelFont = Press_Start_2P({ subsets: ["latin"], weight: "400" });
 

@@ -27,6 +27,7 @@ async function getAllMovies() {
 export const metadata: Metadata = {
   title: "รีวิวหนังทั้งหมด",
   description: "รวมรีวิวหนังภาษาไทยทุกเรื่อง พร้อมเช็คว่าดูได้ที่ไหนบ้าง อัปเดตทุกวัน",
+  alternates: { canonical: "/movies" },
 };
 
 export default async function MoviesListPage() {

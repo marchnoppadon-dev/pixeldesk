@@ -23,6 +23,7 @@ async function getProviders() {
 export const metadata: Metadata = {
   title: "แพลตฟอร์มสตรีมมิ่งทั้งหมด",
   description: "เลือกแพลตฟอร์มสตรีมมิ่ง Netflix, HBO Max, Apple TV, Viu และอื่นๆ ดูว่ามีหนังเรื่องไหนน่าดูบ้าง",
+  alternates: { canonical: "/platforms" },
 };
 
 export default async function PlatformsListPage() {

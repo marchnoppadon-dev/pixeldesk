@@ -40,6 +40,7 @@ async function getTopMoviesThisMonth() {
 export const metadata: Metadata = {
   title: "จัดอันดับหนังใหม่ประจำเดือน",
   description: "Top 10 หนังใหม่ที่เข้าฉายเดือนนี้ เรียงตามเรตติ้งสูงสุด พร้อมรีวิวภาษาไทย",
+  alternates: { canonical: "/ranking" },
 };
 
 export default async function RankingPage() {

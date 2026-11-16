@@ -2,7 +2,17 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Press_Start_2P } from "next/font/google";
 import Link from "next/link";
+import { cache } from "react";
 import { supabase } from "../../../lib/supabase";
+
+// ISR: render each review on first visit, then serve it from cache and refresh hourly.
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  return [];
+}
+
+const SITE_URL = "https://pixeldeskth.com";
 
 const pixelFont = Press_Start_2P({ subsets: ["latin"], weight: "400" });
 
@@ -41,7 +51,8 @@ interface MovieDetail {
   }[];
 }
 
-async function getMovie(slug: string): Promise<MovieDetail | null> {
+// cache() dedupes the query between generateMetadata and the page render.
+const getMovie = cache(async function getMovie(slug: string): Promise<MovieDetail | null> {
   const { data, error } = await supabase
     .from("movies")
     .select(
@@ -63,7 +74,7 @@ async function getMovie(slug: string): Promise<MovieDetail | null> {
       ? data.ai_content[0] ?? null
       : data.ai_content,
   } as unknown as MovieDetail;
-}
+});
 
 async function getSimilarMovies(movieId: string) {
   const { data: genreRows } = await supabase
@@ -97,9 +108,25 @@ export async function generateMetadata({
   const movie = await getMovie(slug);
   if (!movie) return {};
 
+  const title = movie.ai_content?.meta_title ?? `รีวิว ${movie.title_th}`;
+  const description = movie.ai_content?.meta_description ?? undefined;
+  const path = `/movies/${movie.slug}`;
+
   return {
-    title: movie.ai_content?.meta_title ?? movie.title_th,
-    description: movie.ai_content?.meta_description ?? undefined,
+    title,
+    description,
+    alternates: { canonical: path },
+    openGraph: {
+      type: "article",
+      locale: "th_TH",
+      siteName: "pixeldeskth",
+      url: path,
+      title,
+      description,
+      images: movie.poster_path
+        ? [{ url: `https://image.tmdb.org/t/p/w780${movie.poster_path}`, alt: movie.title_th }]
+        : ["/logo.png"],
+    },
   };
 }
 
@@ -119,31 +146,49 @@ export default async function MovieDetailPage({
   const trailerUrl = movie.trailer_youtube_key
     ? "https://www.youtube.com/watch?v=" + movie.trailer_youtube_key
     : null;
+  const pageUrl = `${SITE_URL}/movies/${movie.slug}`;
+  // No aggregateRating: the only score we have is TMDB's community vote, and Google's
+  // review-snippet policy forbids marking up ratings that weren't collected on this site.
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "Movie",
-    name: movie.title_th,
-    image: movie.poster_path
-      ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
-      : undefined,
-    dateCreated: movie.release_date ?? undefined,
-    duration: movie.runtime ? `PT${movie.runtime}M` : undefined,
-    contentRating: movie.certification_th ?? undefined,
-    aggregateRating: movie.vote_average && movie.vote_count
-      ? {
-          "@type": "AggregateRating",
-          ratingValue: movie.vote_average,
-          ratingCount: movie.vote_count,
-          bestRating: 10,
-        }
-      : undefined,
-    review: movie.ai_content?.review_body
-      ? {
-          "@type": "Review",
-          author: { "@type": "Organization", name: "pixeldeskth" },
-          reviewBody: movie.ai_content.review_body,
-        }
-      : undefined,
+    "@graph": [
+      {
+        "@type": "Movie",
+        "@id": `${pageUrl}#movie`,
+        name: movie.title_th,
+        alternateName:
+          movie.title_original && movie.title_original !== movie.title_th
+            ? movie.title_original
+            : undefined,
+        url: pageUrl,
+        image: movie.poster_path
+          ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+          : undefined,
+        dateCreated: movie.release_date ?? undefined,
+        duration: movie.runtime ? `PT${movie.runtime}M` : undefined,
+        contentRating: movie.certification_th ?? undefined,
+        actor: cast.length
+          ? cast.slice(0, 6).map((c) => ({ "@type": "Person", name: c.name }))
+          : undefined,
+        review: movie.ai_content?.review_body
+          ? {
+              "@type": "Review",
+              author: { "@type": "Organization", name: "pixeldeskth", url: SITE_URL },
+              publisher: { "@type": "Organization", name: "pixeldeskth", url: SITE_URL },
+              reviewBody: movie.ai_content.review_body,
+              inLanguage: "th",
+            }
+          : undefined,
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "หน้าแรก", item: SITE_URL },
+          { "@type": "ListItem", position: 2, name: "รีวิวหนัง", item: `${SITE_URL}/movies` },
+          { "@type": "ListItem", position: 3, name: movie.title_th, item: pageUrl },
+        ],
+      },
+    ],
   };
 
   return (
@@ -157,7 +202,10 @@ export default async function MovieDetailPage({
         <Link href="/" style={{ color: COLORS.muted }}>
           หน้าแรก
         </Link>{" "}
-        / รีวิวหนัง
+        /{" "}
+        <Link href="/movies" style={{ color: COLORS.muted }}>
+          รีวิวหนัง
+        </Link>
       </nav>
 
       <div
@@ -194,7 +242,7 @@ export default async function MovieDetailPage({
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1 className={pixelFont.className} style={{ fontSize: 18, color: "#fff", margin: "0 0 8px", lineHeight: 1.5 }}>
-            {movie.title_th}
+            รีวิว {movie.title_th}
           </h1>
           <p style={{ fontSize: 12, color: COLORS.muted, margin: "0 0 10px" }}>
             {releaseYear ?? "-"} · {movie.runtime ? `${movie.runtime} นาที` : "-"} ·{" "}
@@ -203,7 +251,8 @@ export default async function MovieDetailPage({
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             {movie.vote_average !== null && (
               <span style={{ color: COLORS.accent, fontSize: 13, fontWeight: 600 }}>
-                ★ {movie.vote_average.toFixed(1)}/10
+                ★ {movie.vote_average.toFixed(1)}/10{" "}
+                <span style={{ color: COLORS.muted, fontWeight: 400, fontSize: 11 }}>(TMDB)</span>
               </span>
             )}
             {primaryProvider && (

@@ -70,6 +70,7 @@ export async function generateMetadata({
     title: "แนะนำหนัง " + provider.name.toUpperCase() + " ดูอะไรดี",
     description:
       "แนะนำหนัง " + provider.name.toUpperCase() + " ดูอะไรดี รวมหนังใหม่บน " + provider.name.toUpperCase() + " พร้อมรีวิวภาษาไทย อัปเดตล่าสุด",
+    alternates: { canonical: "/platforms/" + slug },
   };
 }
 

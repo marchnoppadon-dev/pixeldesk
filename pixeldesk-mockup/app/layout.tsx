@@ -25,7 +25,8 @@ export const metadata: Metadata = {
     title: "pixeldeskth — รีวิวหนัง ดูได้ที่ไหนบ้าง Netflix, Viu, HBO Max, Apple TV",
     description:
       "รีวิวหนังภาษาไทยตรงประเด็น พร้อมเช็คว่าดูได้ที่ไหนบ้าง Netflix, Viu, HBO Max, Apple TV และแพลตฟอร์มอื่น",
-    // TODO: เพิ่ม images: ["/og-default.png"] ตอนมีไฟล์ banner/โลโก้จริงแล้ว
+    // TODO: เปลี่ยนเป็น banner 1200x630 เมื่อมีไฟล์จริง
+    images: ["/logo.png"],
   },
   twitter: {
     card: "summary_large_image",
