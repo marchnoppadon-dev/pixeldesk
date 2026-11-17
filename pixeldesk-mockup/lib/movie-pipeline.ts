@@ -11,6 +11,7 @@ import {
 } from "./tmdb";
 import { generateMovieContent, type MovieContext } from "./ai-content";
 import { makeMovieSlug } from "./slug";
+import { isUntranslatedTitle } from "./quality";
 
 /**
  * ตรวจสอบว่าหนังเรื่องนี้มีอยู่ในระบบแล้วหรือยัง ถ้ายังไม่มี จะสร้างขึ้นใหม่ครบ
@@ -38,9 +39,15 @@ export async function ensureMovieExists(tmdbId: number): Promise<string | null> 
 
   const director = credits?.crew?.find((c: any) => c.job === "Director")?.name ?? null;
   const topCast = (credits?.cast ?? []).slice(0, 5).map((c: any) => c.name);
+  const englishTitle = await fetchEnglishTitle(tmdbId);
+  // No Thai title on TMDB (detail.title comes back Korean/Chinese/...): use the English one.
+  const titleTh =
+    isUntranslatedTitle(detail.title) && englishTitle && !isUntranslatedTitle(englishTitle)
+      ? englishTitle
+      : detail.title;
 
   const ctx: MovieContext = {
-    titleTh: detail.title,
+    titleTh,
     titleOriginal: detail.original_title,
     overviewEn: detail.overview,
     genres: (detail.genres ?? []).map((g: any) => g.name),
@@ -56,7 +63,7 @@ export async function ensureMovieExists(tmdbId: number): Promise<string | null> 
     .from("movies")
     .insert({
       tmdb_id: tmdbId,
-      slug: makeMovieSlug(tmdbId, await fetchEnglishTitle(tmdbId), detail.original_title),
+      slug: makeMovieSlug(tmdbId, englishTitle, detail.original_title),
       title_th: ctx.titleTh,
       title_original: ctx.titleOriginal,
       release_date: ctx.releaseDate,
