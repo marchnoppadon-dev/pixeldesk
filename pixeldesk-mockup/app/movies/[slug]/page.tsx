@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cache } from "react";
 import { supabase } from "../../../lib/supabase";
 import { tmdbIdFromSlug } from "../../../lib/slug";
+import { isIndexable } from "../../../lib/quality";
 
 // ISR: render each review on first visit, then serve it from cache and refresh hourly.
 export const revalidate = 3600;
@@ -126,10 +127,17 @@ export async function generateMetadata({
   const description = movie.ai_content?.meta_description ?? undefined;
   const path = `/movies/${movie.slug}`;
 
+  const indexable = isIndexable({
+    title_th: movie.title_th,
+    vote_average: movie.vote_average,
+    review_body: movie.ai_content?.review_body,
+  });
+
   return {
     title,
     description,
     alternates: { canonical: path },
+    robots: indexable ? undefined : { index: false, follow: true },
     openGraph: {
       type: "article",
       locale: "th_TH",
@@ -158,7 +166,11 @@ export default async function MovieDetailPage({
   }
 
   const similar = await getSimilarMovies(movie.id);
-  const primaryProvider = movie.movie_providers[0]?.providers;
+  const providers = movie.movie_providers
+    .map((mp) => mp.providers)
+    .filter((p): p is { name: string; slug: string } => !!p)
+    .filter((p, i, all) => all.findIndex((q) => q.slug === p.slug) === i);
+  const primaryProvider = providers[0];
   const cast = [...movie.movie_cast].sort((a, b) => a.billing_order - b.billing_order);
   const releaseYear = movie.release_date ? movie.release_date.slice(0, 4) : null;
   const trailerUrl = movie.trailer_youtube_key
@@ -355,8 +367,8 @@ export default async function MovieDetailPage({
         </div>
       )}
 
-      {primaryProvider && (
-        <div
+      {providers.length > 0 && (
+        <section
           style={{
             background: COLORS.accent,
             borderRadius: 10,
@@ -364,28 +376,33 @@ export default async function MovieDetailPage({
             marginBottom: "1.25rem",
           }}
         >
-          <p className={pixelFont.className} style={{ fontSize: 11, color: "#412a06", margin: "0 0 8px" }}>
-            ดูได้ที่ไหน
+          <h2 style={{ fontSize: 15, color: "#412a06", margin: "0 0 6px", fontWeight: 700 }}>
+            {movie.title_th} ดูได้ที่ไหน?
+          </h2>
+          <p style={{ fontSize: 13, color: "#412a06", margin: "0 0 12px", lineHeight: 1.6 }}>
+            {movie.title_th} ดูได้บน{" "}
+            {providers.map((p) => p.name.toUpperCase()).join(", ")} ในประเทศไทย
+            สมาชิกแบบรายเดือนดูได้ทันทีโดยไม่ต้องเช่าเพิ่ม
           </p>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 13, color: "#412a06" }}>
-              สมาชิกรายเดือนของแพลตฟอร์มนี้ดูได้ทันที
-            </span>
-            <Link
-              href={`/platforms/${primaryProvider.slug}`}
-              style={{
-                background: "#fff",
-                color: "#412a06",
-                fontSize: 11,
-                padding: "6px 14px",
-                borderRadius: 5,
-                textDecoration: "none",
-              }}
-            >
-              ไปหน้า {primaryProvider.name.toUpperCase()} →
-            </Link>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {providers.map((p) => (
+              <Link
+                key={p.slug}
+                href={`/platforms/${p.slug}`}
+                style={{
+                  background: "#fff",
+                  color: "#412a06",
+                  fontSize: 12,
+                  padding: "6px 14px",
+                  borderRadius: 5,
+                  textDecoration: "none",
+                }}
+              >
+                หนังอื่นบน {p.name.toUpperCase()} →
+              </Link>
+            ))}
           </div>
-        </div>
+        </section>
       )}
 
       {movie.ai_content?.faq && movie.ai_content.faq.length > 0 && (

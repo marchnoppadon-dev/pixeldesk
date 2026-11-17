@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { isAdminAuthenticated } from "../../../../lib/admin-auth";
 import { supabase } from "../../../../lib/supabase";
 
@@ -45,5 +46,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  revalidatePath("/");
   return NextResponse.json({ success: true, videoId });
 }

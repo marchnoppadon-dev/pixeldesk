@@ -6,7 +6,8 @@ import HeroBanner from "./components/HeroBanner";
 import TrailerSection from "./components/TrailerSection";
 import type { Metadata } from "next";
 
-export const revalidate = 0;
+// Cache the homepage for 5 minutes; changing the hero trailer in admin revalidates it at once.
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },

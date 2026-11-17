@@ -29,6 +29,16 @@ interface ProviderMovie {
   title_th: string;
   poster_path: string | null;
   vote_average: number | null;
+  release_date: string | null;
+  blurb: string | null;
+}
+
+export const revalidate = 3600;
+
+const SITE_URL = "https://pixeldeskth.com";
+
+function thaiMonthYear(d = new Date()) {
+  return d.toLocaleDateString("th-TH", { month: "long", year: "numeric", timeZone: "Asia/Bangkok" });
 }
 
 async function getProvider(slug: string): Promise<Provider | null> {
@@ -48,13 +58,20 @@ async function getAllProviders(): Promise<{ name: string; slug: string }[]> {
 async function getMoviesForProvider(providerId: number): Promise<ProviderMovie[]> {
   const { data } = await supabase
     .from("movie_providers")
-    .select("movies(slug, title_th, poster_path, vote_average, status)")
+    .select(
+      "movies(slug, title_th, poster_path, vote_average, release_date, status, ai_content(meta_description))"
+    )
     .eq("provider_id", providerId)
     .eq("is_active", true);
 
+  const seen = new Set<string>();
   return (data ?? [])
     .map((row: any) => row.movies)
-    .filter((m: any) => m && m.status === "published");
+    .filter((m: any) => m && m.status === "published" && !seen.has(m.slug) && seen.add(m.slug))
+    .map((m: any) => {
+      const ai = Array.isArray(m.ai_content) ? m.ai_content[0] : m.ai_content;
+      return { ...m, blurb: ai?.meta_description ?? null } as ProviderMovie;
+    });
 }
 
 export async function generateMetadata({
@@ -66,10 +83,11 @@ export async function generateMetadata({
   const provider = await getProvider(slug);
   if (!provider) return {};
 
+  const name = provider.name.toUpperCase();
+  const month = thaiMonthYear();
   return {
-    title: "แนะนำหนัง " + provider.name.toUpperCase() + " ดูอะไรดี",
-    description:
-      "แนะนำหนัง " + provider.name.toUpperCase() + " ดูอะไรดี รวมหนังใหม่บน " + provider.name.toUpperCase() + " พร้อมรีวิวภาษาไทย อัปเดตล่าสุด",
+    title: `แนะนำหนัง ${name} ดูอะไรดี (${month})`,
+    description: `หนัง ${name} ดูอะไรดี? รวมหนังใหม่และหนังคะแนนสูงบน ${name} ในไทย พร้อมรีวิวภาษาไทยสั้นๆ ทุกเรื่อง อัปเดต${month}`,
     alternates: { canonical: "/platforms/" + slug },
   };
 }
@@ -87,8 +105,54 @@ export default async function PlatformPage({
   const allProviders = await getAllProviders();
   const otherProviders = allProviders.filter((p) => p.slug !== provider.slug);
 
+  const name = provider.name.toUpperCase();
+  const month = thaiMonthYear();
+  const newest = [...movies]
+    .filter((m) => m.release_date)
+    .sort((a, b) => (b.release_date! > a.release_date! ? 1 : -1))
+    .slice(0, 6);
+  const topRated = [...movies]
+    .filter((m) => (m.vote_average ?? 0) > 0)
+    .sort((a, b) => (b.vote_average ?? 0) - (a.vote_average ?? 0))
+    .slice(0, 6);
+  const pageUrl = `${SITE_URL}/platforms/${provider.slug}`;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "CollectionPage",
+        "@id": pageUrl,
+        url: pageUrl,
+        name: `แนะนำหนัง ${name} ดูอะไรดี`,
+        inLanguage: "th",
+        mainEntity: {
+          "@type": "ItemList",
+          numberOfItems: movies.length,
+          itemListElement: movies.slice(0, 30).map((m, i) => ({
+            "@type": "ListItem",
+            position: i + 1,
+            url: `${SITE_URL}/movies/${m.slug}`,
+            name: m.title_th,
+          })),
+        },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "หน้าแรก", item: SITE_URL },
+          { "@type": "ListItem", position: 2, name: "แพลตฟอร์ม", item: `${SITE_URL}/platforms` },
+          { "@type": "ListItem", position: 3, name, item: pageUrl },
+        ],
+      },
+    ],
+  };
+
   return (
     <div style={{ background: COLORS.bg, color: COLORS.text, minHeight: "100vh" }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.25rem 1.5rem" }}>
         <Link
           href="/"
@@ -127,9 +191,10 @@ export default async function PlatformPage({
         <p className={pixelFont.className} style={{ fontSize: 10, color: COLORS.accent, margin: "0 0 10px", letterSpacing: 2 }}>
           แพลตฟอร์มสตรีมมิ่ง
         </p>
-        <h1 className={pixelFont.className} style={{ fontSize: 22, color: "#fff", margin: "0 0 10px", lineHeight: 1.5 }}>
-          {provider.name.toUpperCase()}
+        <h1 style={{ fontSize: 24, color: "#fff", margin: "0 0 10px", lineHeight: 1.4, fontWeight: 700 }}>
+          แนะนำหนัง {name} ดูอะไรดี
         </h1>
+        <p style={{ fontSize: 12, color: COLORS.accent, margin: "0 0 8px" }}>อัปเดต{month}</p>
         <p style={{ fontSize: 14, color: COLORS.muted, margin: "0 0 6px", maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
           {movies.length > 0
             ? "รวมหนัง " + movies.length + " เรื่องที่ดูได้บน " + provider.name.toUpperCase()
@@ -143,6 +208,24 @@ export default async function PlatformPage({
       </div>
 
       <div style={{ padding: "0 1.5rem 3rem" }}>
+        {newest.length > 0 && (
+          <PickList
+            heading={`หนังใหม่บน ${name} ที่น่าดู`}
+            intro={`หนังที่เพิ่งเข้า ${name} ล่าสุด เรียงจากใหม่ไปเก่า พร้อมสรุปสั้นๆ ว่าเรื่องไหนเหมาะกับใคร`}
+            movies={newest}
+          />
+        )}
+        {topRated.length > 0 && (
+          <PickList
+            heading={`หนัง ${name} คะแนนสูงสุด`}
+            intro={`ถ้ายังไม่รู้จะดูอะไรบน ${name} เริ่มจากเรื่องที่คนดูให้คะแนนสูงสุดเหล่านี้ (คะแนนจาก TMDB)`}
+            movies={topRated}
+          />
+        )}
+
+        <h2 style={{ fontSize: 17, color: "#fff", margin: "2rem 0 12px", fontWeight: 700 }}>
+          หนังทั้งหมดบน {name} ({movies.length} เรื่อง)
+        </h2>
         {movies.length === 0 ? (
           <p style={{ color: COLORS.muted, fontSize: 14 }}>
             ยังไม่มีหนังที่รีวิวแล้วบนแพลตฟอร์มนี้ กลับมาเช็คใหม่เร็วๆนี้
@@ -233,9 +316,9 @@ export default async function PlatformPage({
 
         {provider.long_content_th && (
           <div style={{ marginTop: "3rem", maxWidth: 760 }}>
-            <p className={pixelFont.className} style={{ fontSize: 14, color: "#fff", margin: "0 0 14px", lineHeight: 1.6 }}>
-              แนะนำหนัง {provider.name.toUpperCase()} ดูอะไรดี
-            </p>
+            <h2 style={{ fontSize: 17, color: "#fff", margin: "0 0 14px", lineHeight: 1.6, fontWeight: 700 }}>
+              {name} ดูอะไรดี? คู่มือเลือกหนังฉบับย่อ
+            </h2>
             {provider.long_content_th.split("\n\n").map((para, i) => (
               <p key={i} style={{ fontSize: 14, color: COLORS.muted, lineHeight: 1.8, margin: "0 0 14px" }}>
                 {para}
@@ -245,5 +328,39 @@ export default async function PlatformPage({
         )}
       </div>
     </div>
+  );
+}
+
+/** A short, text-first list: unique per platform and readable by search engines. */
+function PickList({
+  heading,
+  intro,
+  movies,
+}: {
+  heading: string;
+  intro: string;
+  movies: ProviderMovie[];
+}) {
+  return (
+    <section style={{ marginBottom: "2rem", maxWidth: 760 }}>
+      <h2 style={{ fontSize: 17, color: "#fff", margin: "0 0 6px", fontWeight: 700 }}>{heading}</h2>
+      <p style={{ fontSize: 13, color: COLORS.muted, margin: "0 0 12px", lineHeight: 1.6 }}>{intro}</p>
+      <ol style={{ margin: 0, paddingLeft: 20 }}>
+        {movies.map((m) => (
+          <li key={m.slug} style={{ marginBottom: 12, lineHeight: 1.6 }}>
+            <Link href={"/movies/" + m.slug} style={{ color: COLORS.text, fontWeight: 600, fontSize: 14 }}>
+              {m.title_th}
+            </Link>
+            <span style={{ color: COLORS.muted, fontSize: 12 }}>
+              {m.release_date ? ` · ${m.release_date.slice(0, 4)}` : ""}
+              {m.vote_average ? ` · ★ ${Number(m.vote_average).toFixed(1)}` : ""}
+            </span>
+            {m.blurb && (
+              <p style={{ fontSize: 13, color: COLORS.muted, margin: "2px 0 0" }}>{m.blurb}</p>
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }

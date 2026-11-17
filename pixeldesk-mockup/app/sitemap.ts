@@ -1,5 +1,6 @@
 import { MetadataRoute } from "next";
 import { supabase } from "../lib/supabase";
+import { isIndexable } from "../lib/quality";
 
 const BASE_URL = "https://pixeldeskth.com";
 
@@ -8,10 +9,20 @@ const BASE_URL = "https://pixeldeskth.com";
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const { data: movies } = await supabase
+  const { data: movieRows } = await supabase
     .from("movies")
-    .select("slug, updated_at")
+    .select("slug, updated_at, title_th, vote_average, ai_content(review_body)")
     .eq("status", "published");
+
+  // Only list pages we want indexed; thin ones are noindex (see lib/quality.ts).
+  const movies = (movieRows ?? []).filter((m) => {
+    const ai = Array.isArray(m.ai_content) ? m.ai_content[0] : m.ai_content;
+    return isIndexable({
+      title_th: m.title_th,
+      vote_average: m.vote_average,
+      review_body: (ai as { review_body?: string | null } | null)?.review_body,
+    });
+  });
 
   const { data: providers } = await supabase
     .from("providers")
