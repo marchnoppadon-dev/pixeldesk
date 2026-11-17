@@ -279,7 +279,7 @@ export default async function MovieDetailPage({
             {movie.certification_th ?? "ไม่ระบุเรต"}
           </p>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            {movie.vote_average !== null && (
+            {!!movie.vote_average && movie.vote_average > 0 && (
               <span style={{ color: COLORS.accent, fontSize: 13, fontWeight: 600 }}>
                 ★ {movie.vote_average.toFixed(1)}/10{" "}
                 <span style={{ color: COLORS.muted, fontWeight: 400, fontSize: 11 }}>(TMDB)</span>

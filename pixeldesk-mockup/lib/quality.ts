@@ -23,7 +23,7 @@ export function qualityIssues(m: QualityInput): string[] {
   const issues: string[] = [];
   const review = (m.review_body ?? "").trim();
   if (review.length < MIN_REVIEW_CHARS) issues.push("review too short");
-  if (!m.vote_average || m.vote_average <= 0) issues.push("no rating");
+  // A missing TMDB score is not a quality problem: many Thai films have no votes yet.
   const title = m.title_th ?? "";
   if (UNTRANSLATED.test(title) && !THAI.test(title.replace(/\(.*?\)/g, ""))) {
     issues.push("untranslated title");

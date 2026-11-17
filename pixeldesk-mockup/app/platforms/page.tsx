@@ -20,6 +20,9 @@ async function getProviders() {
   return data ?? [];
 }
 
+// Rebuild hourly so newly published reviews and slugs appear without a redeploy.
+export const revalidate = 3600;
+
 export const metadata: Metadata = {
   title: "แพลตฟอร์มสตรีมมิ่งทั้งหมด",
   description: "เลือกแพลตฟอร์มสตรีมมิ่ง Netflix, HBO Max, Apple TV, Viu และอื่นๆ ดูว่ามีหนังเรื่องไหนน่าดูบ้าง",

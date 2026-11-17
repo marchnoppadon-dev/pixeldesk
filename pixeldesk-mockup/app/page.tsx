@@ -159,7 +159,7 @@ function MovieRow({ title, movies }: { title: string; movies: any[] }) {
               <p style={{ fontSize: 11, fontWeight: 600, color: COLORS.text, margin: "0 0 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {m.title_th}
               </p>
-              {m.vote_average !== null && (
+              {!!m.vote_average && m.vote_average > 0 && (
                 <span style={{ color: COLORS.accent, fontSize: 10 }}>
                   ★ {Number(m.vote_average).toFixed(1)}
                 </span>

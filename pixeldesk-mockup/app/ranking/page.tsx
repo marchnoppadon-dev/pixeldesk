@@ -37,6 +37,9 @@ async function getTopMoviesThisMonth() {
   return data ?? [];
 }
 
+// Rebuild hourly so newly published reviews and slugs appear without a redeploy.
+export const revalidate = 3600;
+
 export const metadata: Metadata = {
   title: "จัดอันดับหนังใหม่ประจำเดือน",
   description: "Top 10 หนังใหม่ที่เข้าฉายเดือนนี้ เรียงตามเรตติ้งสูงสุด พร้อมรีวิวภาษาไทย",
@@ -131,7 +134,7 @@ export default async function RankingPage() {
                   <p style={{ fontSize: 15, fontWeight: 600, color: COLORS.text, margin: "0 0 4px" }}>
                     {m.title_th}
                   </p>
-                  {m.vote_average !== null && (
+                  {!!m.vote_average && m.vote_average > 0 && (
                     <span style={{ color: COLORS.accent, fontSize: 13 }}>
                       ★ {Number(m.vote_average).toFixed(1)}
                     </span>

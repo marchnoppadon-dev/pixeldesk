@@ -75,7 +75,7 @@ export default function HeroBanner({ trending, popular, latest, heroTrailerOverr
           </p>
           <p style={{ fontSize: 13, color: colors.muted, margin: "0 0 10px" }}>
             {genreNames || "ภาพยนตร์"}
-            {featured.vote_average !== null ? "  ★ " + Number(featured.vote_average).toFixed(1) : ""}
+            {(featured.vote_average ?? 0) > 0 ? "  ★ " + Number(featured.vote_average).toFixed(1) : ""}
           </p>
           {featured.ai_content?.meta_description && (
             <p style={{ fontSize: 14, color: colors.text, margin: "0 0 18px", lineHeight: 1.6, maxWidth: 480 }}>
