@@ -4,6 +4,33 @@ import Script from "next/script";
 
 const GA_ID = "G-PS2VDBXPG5";
 
+// Brand profiles: add each social profile here as it is created (Facebook, X, Threads,
+// TikTok, Pinterest, Letterboxd...). Google uses sameAs to tie them to this site.
+const SAME_AS = ["https://github.com/marchnoppadon-dev/pixeldesk"];
+
+const siteJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://pixeldeskth.com/#org",
+      name: "pixeldesk",
+      alternateName: "pixeldeskth",
+      url: "https://pixeldeskth.com",
+      logo: "https://pixeldeskth.com/logo.png",
+      sameAs: SAME_AS,
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://pixeldeskth.com/#website",
+      url: "https://pixeldeskth.com",
+      name: "pixeldesk",
+      inLanguage: "th",
+      publisher: { "@id": "https://pixeldeskth.com/#org" },
+    },
+  ],
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://pixeldeskth.com"),
   title: {
@@ -44,6 +71,10 @@ export default function RootLayout({
   return (
     <html lang="th" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+        />
         <Script
           src={"https://www.googletagmanager.com/gtag/js?id=" + GA_ID}
           strategy="afterInteractive"

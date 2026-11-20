@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminAuthenticated } from "../../../../../../lib/admin-auth";
 import { supabase } from "../../../../../../lib/supabase";
+import { submitMoviesToIndexNow } from "../../../../../../lib/indexnow";
 
 export async function POST(
   request: NextRequest,
@@ -45,5 +46,6 @@ export async function POST(
     );
   }
 
+  await submitMoviesToIndexNow([id]);
   return NextResponse.json({ success: true });
 }

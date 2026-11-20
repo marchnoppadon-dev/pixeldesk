@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminAuthenticated } from "../../../../../lib/admin-auth";
 import { supabase } from "../../../../../lib/supabase";
+import { submitMoviesToIndexNow } from "../../../../../lib/indexnow";
 
 export async function POST(request: NextRequest) {
   if (!(await isAdminAuthenticated())) {
@@ -51,5 +52,6 @@ export async function POST(request: NextRequest) {
     published.push(id);
   }
 
+  await submitMoviesToIndexNow(published);
   return NextResponse.json({ published, skipped });
 }
