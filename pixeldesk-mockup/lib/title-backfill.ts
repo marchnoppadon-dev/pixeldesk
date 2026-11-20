@@ -23,6 +23,21 @@ export async function backfillUntranslatedTitles() {
     .select("id, tmdb_id, title_th, title_original");
   if (error) throw new Error("load movies failed: " + error.message);
 
+  // Load every cast row once (one query instead of one per movie) so the run fits the
+  // function time limit; only movies with native-script cast names need TMDB calls.
+  const { data: allCast, error: castLoadErr } = await supabase
+    .from("movie_cast")
+    .select("movie_id, person_tmdb_id, name")
+    .range(0, 9999);
+  if (castLoadErr) throw new Error("load cast failed: " + castLoadErr.message);
+  const foreignCastByMovie = new Map<string, { person_tmdb_id: number; name: string }[]>();
+  for (const c of allCast ?? []) {
+    if (!FOREIGN_SCRIPT.test(c.name ?? "")) continue;
+    const list = foreignCastByMovie.get(c.movie_id) ?? [];
+    list.push(c);
+    foreignCastByMovie.set(c.movie_id, list);
+  }
+
   const titlesFixed: { from: string; to: string }[] = [];
   const textFixed: string[] = [];
   const castFixed: { movie: string; count: number }[] = [];
@@ -53,12 +68,7 @@ export async function backfillUntranslatedTitles() {
 
     // 3. Cast names
     // movie_cast has no surrogate id: rows are keyed by (movie_id, person_tmdb_id).
-    const { data: cast, error: castErr } = await supabase
-      .from("movie_cast")
-      .select("person_tmdb_id, name")
-      .eq("movie_id", m.id);
-    if (castErr) failed.push({ title, error: "load cast: " + castErr.message });
-    const foreign = (cast ?? []).filter((c) => FOREIGN_SCRIPT.test(c.name ?? ""));
+    const foreign = foreignCastByMovie.get(m.id) ?? [];
     if (foreign.length > 0) {
       const english = await fetchEnglishCastNames(m.tmdb_id);
       let count = 0;
@@ -86,23 +96,30 @@ async function replaceInAiContent(movieId: string, from: string, to: string): Pr
   // ai_content is keyed by movie_id (one row per movie), not by a separate id.
   const { data: ai, error } = await supabase
     .from("ai_content")
-    .select("meta_title, meta_description, review_body")
+    .select("meta_title, meta_description, review_body, pros_cons, faq")
     .eq("movie_id", movieId);
   if (error) {
     console.error("[backfill] load ai_content failed", movieId, error.message);
     return false;
   }
+  // JSON fields (pros/cons, FAQ) are replaced through their serialized text.
+  const replaceJson = <T,>(v: T): T =>
+    v == null ? v : (JSON.parse(replaceAll(JSON.stringify(v), from, to) as string) as T);
   let changed = false;
   for (const row of ai ?? []) {
     const next = {
       meta_title: replaceAll(row.meta_title, from, to),
       meta_description: replaceAll(row.meta_description, from, to),
       review_body: replaceAll(row.review_body, from, to),
+      pros_cons: replaceJson(row.pros_cons),
+      faq: replaceJson(row.faq),
     };
     if (
       next.meta_title !== row.meta_title ||
       next.meta_description !== row.meta_description ||
-      next.review_body !== row.review_body
+      next.review_body !== row.review_body ||
+      JSON.stringify(next.pros_cons) !== JSON.stringify(row.pros_cons) ||
+      JSON.stringify(next.faq) !== JSON.stringify(row.faq)
     ) {
       const { error: e } = await supabase.from("ai_content").update(next).eq("movie_id", movieId);
       if (e) console.error("[backfill] update ai_content failed", movieId, e.message);
