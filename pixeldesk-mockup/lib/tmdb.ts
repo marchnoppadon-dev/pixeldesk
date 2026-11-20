@@ -52,6 +52,16 @@ export async function fetchEnglishTitle(tmdbId: number): Promise<string | null> 
   }
 }
 
+/** Cast names in English (TMDB returns native-script names for Korean/Chinese casts in th-TH). */
+export async function fetchEnglishCastNames(tmdbId: number): Promise<Map<number, string>> {
+  try {
+    const credits = await tmdbFetch(`/movie/${tmdbId}/credits`, { language: "en-US" });
+    return new Map((credits.cast ?? []).map((c: { id: number; name: string }) => [c.id, c.name]));
+  } catch {
+    return new Map();
+  }
+}
+
 export function extractThaiCertification(releaseDates: any): string | null {
   const thEntry = releaseDates?.results?.find((r: any) => r.iso_3166_1 === "TH");
   const cert = thEntry?.release_dates?.find((d: any) => d.certification)?.certification;

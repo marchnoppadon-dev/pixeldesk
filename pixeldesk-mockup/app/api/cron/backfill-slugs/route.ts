@@ -14,10 +14,12 @@ export async function GET(request: NextRequest) {
   try {
     const titles = await backfillUntranslatedTitles();
     const slugs = await backfillMovieSlugs();
-    console.log("[backfill] titles fixed", titles.fixed, "skipped", titles.skipped, "failed", titles.failed);
-    console.log("[backfill] slugs renamed", slugs.renamed.length, "failed", slugs.failed);
+    console.log("[backfill] titles", JSON.stringify(titles));
+    console.log("[backfill] slugs renamed", slugs.renamed.length, "failed", JSON.stringify(slugs.failed));
     // Drop cached pages and the sitemap so links pick up the new titles/slugs right away.
-    if (titles.fixed.length > 0 || slugs.renamed.length > 0) revalidatePath("/", "layout");
+    const changed =
+      titles.titlesFixed.length + titles.textFixed.length + titles.castFixed.length + slugs.renamed.length;
+    if (changed > 0) revalidatePath("/", "layout");
     return NextResponse.json({ success: true, titles, slugs });
   } catch (err: unknown) {
     console.error("backfill-slugs cron error:", err);

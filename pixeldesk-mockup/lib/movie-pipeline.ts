@@ -8,6 +8,7 @@ import {
   extractTrailerKey,
   extractThaiProviders,
   fetchEnglishTitle,
+  fetchEnglishCastNames,
 } from "./tmdb";
 import { generateMovieContent, type MovieContext } from "./ai-content";
 import { makeMovieSlug } from "./slug";
@@ -90,11 +91,17 @@ export async function ensureMovieExists(tmdbId: number): Promise<string | null> 
     await supabase.from("genres").upsert({ id: g.id, name_th: g.name });
     await supabase.from("movie_genres").insert({ movie_id: movieRow.id, genre_id: g.id });
   }
-  for (const [i, c] of (credits?.cast ?? []).slice(0, 10).entries()) {
+  const castList = (credits?.cast ?? []).slice(0, 10);
+  // Korean/Chinese casts come back in native script; prefer the English names.
+  const englishCast = castList.some((c: any) => isUntranslatedTitle(c.name))
+    ? await fetchEnglishCastNames(tmdbId)
+    : new Map<number, string>();
+  for (const [i, c] of castList.entries()) {
+    const english = englishCast.get(c.id);
     await supabase.from("movie_cast").insert({
       movie_id: movieRow.id,
       person_tmdb_id: c.id,
-      name: c.name,
+      name: isUntranslatedTitle(c.name) && english ? english : c.name,
       character: c.character,
       billing_order: i,
     });

@@ -56,7 +56,8 @@ export default async function PlatformsListPage() {
         </h1>
         <p style={{ fontSize: 14, color: COLORS.muted, margin: "0 0 24px", maxWidth: 640 }}>
           รวมแพลตฟอร์มสตรีมมิ่งทั้งหมดที่เรารีวิว เลือกแพลตฟอร์มที่ใช้อยู่
-          แล้วดูว่ามีหนังเรื่องไหนน่าดูบ้าง อัปเดตทุกวัน
+          แล้วดูว่ามีหนังเรื่องไหนน่าดูบ้าง อัปเดตทุกวัน หรือดู{" "}
+          <Link href="/new" style={{ color: COLORS.accent }}>หนังใหม่เดือนนี้ทุกแพลตฟอร์ม →</Link>
         </p>
 
         <div

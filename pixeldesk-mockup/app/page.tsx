@@ -194,6 +194,7 @@ export default async function HomePage() {
         <nav style={{ display: "flex", gap: 18, fontSize: 13, alignItems: "center", flexWrap: "wrap" }}>
           <Link href="/" style={{ color: COLORS.text, textDecoration: "none" }}>หน้าแรก</Link>
           <Link href="/platforms" style={{ color: COLORS.text, textDecoration: "none" }}>แพลตฟอร์ม</Link>
+          <Link href="/new" style={{ color: COLORS.text, textDecoration: "none" }}>หนังใหม่เดือนนี้</Link>
           <Link href="/movies" style={{ color: COLORS.text, textDecoration: "none" }}>รีวิวหนัง</Link>
           <Link href="/ranking" style={{ color: COLORS.text, textDecoration: "none" }}>จัดอันดับ</Link>
         </nav>
