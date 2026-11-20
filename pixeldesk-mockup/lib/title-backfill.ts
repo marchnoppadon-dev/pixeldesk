@@ -52,19 +52,26 @@ export async function backfillUntranslatedTitles() {
     }
 
     // 3. Cast names
-    const { data: cast } = await supabase
+    // movie_cast has no surrogate id: rows are keyed by (movie_id, person_tmdb_id).
+    const { data: cast, error: castErr } = await supabase
       .from("movie_cast")
-      .select("id, person_tmdb_id, name")
+      .select("person_tmdb_id, name")
       .eq("movie_id", m.id);
+    if (castErr) failed.push({ title, error: "load cast: " + castErr.message });
     const foreign = (cast ?? []).filter((c) => FOREIGN_SCRIPT.test(c.name ?? ""));
     if (foreign.length > 0) {
       const english = await fetchEnglishCastNames(m.tmdb_id);
       let count = 0;
       for (const c of foreign) {
-        const name = english.get(c.person_tmdb_id);
+        const name = english.get(Number(c.person_tmdb_id));
         if (name && !FOREIGN_SCRIPT.test(name)) {
-          await supabase.from("movie_cast").update({ name }).eq("id", c.id);
-          count++;
+          const { error: e } = await supabase
+            .from("movie_cast")
+            .update({ name })
+            .eq("movie_id", m.id)
+            .eq("person_tmdb_id", c.person_tmdb_id);
+          if (e) failed.push({ title, error: "update cast: " + e.message });
+          else count++;
         }
       }
       if (count > 0) castFixed.push({ movie: title, count });
@@ -76,10 +83,15 @@ export async function backfillUntranslatedTitles() {
 
 /** Replace `from` with `to` in the movie's AI texts; returns true if anything changed. */
 async function replaceInAiContent(movieId: string, from: string, to: string): Promise<boolean> {
-  const { data: ai } = await supabase
+  // ai_content is keyed by movie_id (one row per movie), not by a separate id.
+  const { data: ai, error } = await supabase
     .from("ai_content")
-    .select("id, meta_title, meta_description, review_body")
+    .select("meta_title, meta_description, review_body")
     .eq("movie_id", movieId);
+  if (error) {
+    console.error("[backfill] load ai_content failed", movieId, error.message);
+    return false;
+  }
   let changed = false;
   for (const row of ai ?? []) {
     const next = {
@@ -92,8 +104,9 @@ async function replaceInAiContent(movieId: string, from: string, to: string): Pr
       next.meta_description !== row.meta_description ||
       next.review_body !== row.review_body
     ) {
-      await supabase.from("ai_content").update(next).eq("id", row.id);
-      changed = true;
+      const { error: e } = await supabase.from("ai_content").update(next).eq("movie_id", movieId);
+      if (e) console.error("[backfill] update ai_content failed", movieId, e.message);
+      else changed = true;
     }
   }
   return changed;

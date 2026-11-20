@@ -15,7 +15,10 @@ const COLORS = {
 };
 
 const SITE_URL = "https://pixeldeskth.com";
-const WINDOW_DAYS = 120;
+// Streaming lags cinema release by months, so "new on streaming" looks back a year,
+// while "not on streaming yet" only covers recent releases.
+const STREAMING_WINDOW_DAYS = 365;
+const THEATRICAL_WINDOW_DAYS = 120;
 
 export const revalidate = 3600;
 
@@ -42,7 +45,7 @@ function thaiDate(iso: string) {
 }
 
 async function getNewMovies(): Promise<NewMovie[]> {
-  const since = new Date(Date.now() - WINDOW_DAYS * 864e5).toISOString().slice(0, 10);
+  const since = new Date(Date.now() - STREAMING_WINDOW_DAYS * 864e5).toISOString().slice(0, 10);
   const today = new Date().toISOString().slice(0, 10);
   const { data } = await supabase
     .from("movies")
@@ -53,7 +56,7 @@ async function getNewMovies(): Promise<NewMovie[]> {
     .gte("release_date", since)
     .lte("release_date", today)
     .order("release_date", { ascending: false })
-    .limit(60);
+    .limit(120);
 
   return (data ?? []).map((m: any) => {
     const ai = Array.isArray(m.ai_content) ? m.ai_content[0] : m.ai_content;
@@ -83,8 +86,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function NewMoviesPage() {
   const month = thaiMonthYear();
-  const movies = await getNewMovies();
-  const streaming = movies.filter((m) => m.providers.length > 0);
+  const all = await getNewMovies();
+  const theatricalSince = new Date(Date.now() - THEATRICAL_WINDOW_DAYS * 864e5).toISOString().slice(0, 10);
+  const streaming = all.filter((m) => m.providers.length > 0).slice(0, 40);
+  const notYet = all.filter((m) => m.providers.length === 0 && m.release_date >= theatricalSince);
+  const movies = [...streaming, ...notYet];
 
   const byPlatform = new Map<string, { name: string; slug: string; movies: NewMovie[] }>();
   for (const m of streaming) {
@@ -138,9 +144,9 @@ export default async function NewMoviesPage() {
           หนังใหม่ {month} ดูที่ไหนดี
         </h1>
         <p style={{ fontSize: 14, color: COLORS.muted, lineHeight: 1.7, margin: "0 0 2rem" }}>
-          รวมหนังที่เพิ่งออกในช่วง {Math.round(WINDOW_DAYS / 30)} เดือนล่าสุด {movies.length} เรื่อง
-          {streaming.length > 0 && <> โดย {streaming.length} เรื่องดูได้แล้วบนสตรีมมิ่งในไทย</>}{" "}
-          แยกตามแพลตฟอร์มให้เลือกง่ายๆ พร้อมรีวิวสั้นภาษาไทย อัปเดตอัตโนมัติทุกชั่วโมง
+          รวมหนังใหม่ที่ดูได้แล้วบนสตรีมมิ่งในไทย {streaming.length} เรื่อง แยกตามแพลตฟอร์มให้เลือกง่ายๆ
+          {notYet.length > 0 && <> และหนังเข้าโรงล่าสุดอีก {notYet.length} เรื่องที่ยังไม่เข้าสตรีมมิ่ง</>}{" "}
+          พร้อมรีวิวสั้นภาษาไทย อัปเดตอัตโนมัติทุกชั่วโมง
         </p>
 
         {platforms.length > 0 && (
@@ -172,7 +178,7 @@ export default async function NewMoviesPage() {
           </section>
         ))}
 
-        {movies.length > streaming.length && (
+        {notYet.length > 0 && (
           <section style={{ marginBottom: "2.5rem" }}>
             <h2 style={{ fontSize: 19, color: "#fff", margin: "0 0 6px", fontWeight: 700 }}>
               หนังใหม่ที่ยังไม่เข้าสตรีมมิ่ง
@@ -180,7 +186,7 @@ export default async function NewMoviesPage() {
             <p style={{ fontSize: 13, color: COLORS.muted, margin: "0 0 12px" }}>
               เรื่องเหล่านี้ยังไม่มีบนแพลตฟอร์มในไทย ส่วนใหญ่ยังอยู่ในโรงหรือรอเข้าสตรีมมิ่ง
             </p>
-            <MovieList movies={movies.filter((m) => m.providers.length === 0)} />
+            <MovieList movies={notYet} />
           </section>
         )}
       </div>
