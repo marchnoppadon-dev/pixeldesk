@@ -404,6 +404,12 @@ export default async function MovieDetailPage({
           </div>
         </section>
       )}
+      <p style={{ fontSize: 12, color: COLORS.muted, margin: "-0.5rem 0 1.25rem" }}>
+        เขียนรีวิวหนังเรื่องนี้อยู่?{" "}
+        <Link href={`/widget?movie=${movie.slug}`} style={{ color: COLORS.accent }}>
+          ฝังกล่อง &quot;ดูได้ที่ไหน&quot; ในบล็อกของคุณฟรี →
+        </Link>
+      </p>
 
       {movie.ai_content?.faq && movie.ai_content.faq.length > 0 && (
         <>
